@@ -17,4 +17,3 @@ jobs:
           targets: wasm32v1-none
       - uses: Swatinem/rust-cache@v2
       - run: cargo test --workspace
-      - run: cargo build --release --target wasm32v1-none --workspace
