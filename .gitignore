@@ -30,3 +30,19 @@ node_modules/
 .env
 .env.*
 *.keys.json
+
+# Node
+node_modules/
+dist/
+.env
+.env.*
+!.env.example
+
+# Claves y secretos: nunca al repo
+*.secret
+*.key
+secrets/
+.stellar/
+
+# Snapshots generados por las pruebas de Soroban
+test_snapshots/
