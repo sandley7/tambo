@@ -3,6 +3,7 @@ import {
   Address,
   Contract,
   Networks,
+  StrKey,
   TransactionBuilder,
   nativeToScVal,
   rpc,
@@ -12,7 +13,17 @@ import {
 import type { ContractStatus, Intel, ThreatInfo } from "./types.js";
 
 /** Cuenta "nula" válida: sirve como fuente en simulaciones de solo lectura. */
-const NULL_ACCOUNT = "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF";
+const NULL_ACCOUNT = StrKey.encodeEd25519PublicKey(new Uint8Array(32));
+
+function hexToBytes(hex: string): Uint8Array {
+  const out = new Uint8Array(hex.length / 2);
+  for (let i = 0; i < out.length; i++) out[i] = parseInt(hex.slice(i * 2, i * 2 + 2), 16);
+  return out;
+}
+
+function bytesToHex(bytes: Uint8Array): string {
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+}
 
 export const THREAT_KINDS: Record<number, string> = {
   1: "estafa",
@@ -77,8 +88,13 @@ export class RegistryIntel implements Intel {
     return out;
   }
 
+  /** Cantidad de direcciones reportadas en el registro. */
+  async count(): Promise<number> {
+    return Number(await this.read("count"));
+  }
+
   async isWasmVerified(hashHex: string): Promise<boolean> {
-    const arg = nativeToScVal(Buffer.from(hashHex, "hex"), { type: "bytes" });
+    const arg = nativeToScVal(hexToBytes(hashHex), { type: "bytes" });
     return (await this.read("is_wasm_verified", arg)) === true;
   }
 
@@ -98,12 +114,13 @@ export class RegistryIntel implements Intel {
       const entry = res.entries[0];
       if (entry) {
         const data = entry.val as unknown as { contractData: xdr.ContractDataEntry };
-        const inst = data.contractData.val as unknown as { instance: { executable: { type: string; wasmHash?: Uint8Array } } };
+        const inst = data.contractData.val as unknown as { instance: { executable: { type: string; wasmHash?: Uint8Array | { value: Uint8Array } } } };
         const exec = inst.instance.executable;
         if (exec.type === "contractExecutableStellarAsset") {
           status = { kind: "sac", verified: true };
         } else {
-          const hash = Buffer.from(exec.wasmHash as Uint8Array).toString("hex");
+          const raw = exec.wasmHash as Uint8Array | { value: Uint8Array };
+          const hash = bytesToHex(raw instanceof Uint8Array ? raw : raw.value);
           status = { kind: "wasm", wasmHash: hash, verified: await this.isWasmVerified(hash) };
         }
       }

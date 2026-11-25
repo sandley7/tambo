@@ -1,0 +1,14 @@
+{
+  "name": "tambo",
+  "private": true,
+  "license": "MIT",
+  "description": "Firewall para agentes de IA en Stellar",
+  "workspaces": ["packages/*", "apps/*"],
+  "scripts": {
+    "build:sdk": "npm run build -w tambo-sdk",
+    "test": "npm run test -w tambo-sdk",
+    "demo:dev": "npm run dev -w tambo-demo",
+    "demo:build": "npm run build -w tambo-demo",
+    "agent": "npm run build:sdk && npm run agent -w tambo-demo"
+  }
+}
